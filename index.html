@@ -7,44 +7,37 @@
     <link rel="icon" type="image/png" href="favicon.png">
     <link rel="stylesheet" href="assets/styles.css">
   </head>
-  <body class="home">
+  <body class="home v3">
     <header class="site-header">
       <div class="wrap">
         <a class="brand" href="index.html">JM</a>
         <nav class="nav">
           <a class="active" href="index.html">Home</a>
-          <a href="tools/filemaker/">Tool</a>
           <a href="ml/">ML Project</a>
+          <a href="tools/filemaker/">Tool</a>
           <a href="resume.pdf">Resume</a>
         </nav>
       </div>
     </header>
 
     <main class="wrap">
-      <section class="hero hero-home">
-        <div class="home-grid">
-          <figure class="portrait">
-            <img src="assets/john.jpg" alt="John at a whiteboard covered in math, sitting in a chair">
-          </figure>
-
-          <div class="graph" id="graph">
-            <button id="nameNode" class="name-node" aria-expanded="false">
-              <span class="row">
-                <img class="utk" src="assets/utk.png" alt="UT Knoxville logo">
-                <span class="name">John McGuigan</span>
-              </span>
-              <span class="sub">University of Tennessee Knoxville</span>
-            </button>
-
-            <nav class="targets" id="targets" aria-label="Quick links">
-              <a class="target" id="t-ml"   href="ml/"><span>ML Project</span></a>
-              <a class="target" id="t-tool" href="tools/filemaker/"><span>Tool</span></a>
-              <a class="target" id="t-res"  href="resume.pdf"><span>Resume</span></a>
-            </nav>
-
-            <svg class="wires" id="homeWires" aria-hidden="true"></svg>
+      <section class="fold">
+        <h1 class="name-white">John McGuigan</h1>
+        <figure class="portrait">
+          <img src="assets/john.jpg" alt="John sitting in front of a whiteboard covered with equations">
+        </figure>
+        <div class="affiliation">
+          <img class="utk-logo" src="assets/utk.png" alt="University of Tennessee Knoxville logo">
+          <div class="depts">
+            <div>Department of Physics &amp; Astronomy</div>
+            <div>Department of Mathematics</div>
           </div>
         </div>
+        <nav class="blocks">
+          <a class="block" href="resume.pdf">Resume</a>
+          <a class="block" href="tools/filemaker/">File Tool</a>
+          <a class="block" href="ml/">ML Project</a>
+        </nav>
       </section>
     </main>
 

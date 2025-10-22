@@ -1,0 +1,22 @@
+experiment:
+  name: "adam-run"
+  seed: 7
+  output_dir: "experiments/2025-10-20-adam"
+data:
+  kind: "synthetic_linear"
+  n_samples: 2048
+  n_features: 5
+  noise_std: 0.1
+model:
+  type: "linear_regression"
+training:
+  algorithm: "adam"
+  epochs: 120
+  lr: 0.01
+  beta1: 0.9
+  beta2: 0.999
+  eps: 1.0e-8
+  batch_size: 64
+logging:
+  level: "INFO"
+  log_dir: "experiments/logs"

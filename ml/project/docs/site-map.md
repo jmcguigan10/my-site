@@ -1,0 +1,87 @@
+# Site Map
+
+Full-tree clickable map. Direct links for files, and preview links for code.
+
+- **[configs/](../configs/README.md)**
+  - `configs/adam.yaml` → [adam.yaml](../configs/adam.yaml)
+  - `configs/back-arrow.png` → [back-arrow.png](../configs/back-arrow.png)
+  - `configs/default.yaml` → [default.yaml](../configs/default.yaml)
+  - `configs/momentum.yaml` → [momentum.yaml](../configs/momentum.yaml)
+  - `configs/README.md` → [README.md](../configs/README.md)
+  - `configs/sgd.yaml` → [sgd.yaml](../configs/sgd.yaml)
+- **docs/**
+  - **docs/code/**
+    - **docs/code/scripts/**
+      - `docs/code/scripts/run_training.md` → [run_training.md](code/scripts/run_training.md)
+    - **docs/code/src/**
+      - **docs/code/src/algorithms/**
+        - `docs/code/src/algorithms/__init__.md` → [__init__.md](code/src/algorithms/__init__.md)
+        - `docs/code/src/algorithms/adam.md` → [adam.md](code/src/algorithms/adam.md)
+        - `docs/code/src/algorithms/momentum.md` → [momentum.md](code/src/algorithms/momentum.md)
+        - `docs/code/src/algorithms/sgd.md` → [sgd.md](code/src/algorithms/sgd.md)
+      - **docs/code/src/data/**
+        - `docs/code/src/data/__init__.md` → [__init__.md](code/src/data/__init__.md)
+        - `docs/code/src/data/loaders.md` → [loaders.md](code/src/data/loaders.md)
+      - **docs/code/src/models/**
+        - `docs/code/src/models/__init__.md` → [__init__.md](code/src/models/__init__.md)
+        - `docs/code/src/models/linear_regression.md` → [linear_regression.md](code/src/models/linear_regression.md)
+      - **docs/code/src/training/**
+        - **docs/code/src/training/legacy/**
+          - `docs/code/src/training/legacy/grad_desc_prob.md` → [grad_desc_prob.md](code/src/training/legacy/grad_desc_prob.md)
+        - `docs/code/src/training/__init__.md` → [__init__.md](code/src/training/__init__.md)
+        - `docs/code/src/training/train.md` → [train.md](code/src/training/train.md)
+      - **docs/code/src/utils/**
+        - `docs/code/src/utils/__init__.md` → [__init__.md](code/src/utils/__init__.md)
+        - `docs/code/src/utils/config.md` → [config.md](code/src/utils/config.md)
+        - `docs/code/src/utils/logging.md` → [logging.md](code/src/utils/logging.md)
+      - `docs/code/src/__init__.md` → [__init__.md](code/src/__init__.md)
+    - **docs/code/tests/**
+      - `docs/code/tests/test_optimizers.md` → [test_optimizers.md](code/tests/test_optimizers.md)
+  - `docs/architecture.md` → [architecture.md](architecture.md)
+  - `docs/back-arrow.png` → [back-arrow.png](back-arrow.png)
+  - `docs/code-browser.md` → [code-browser.md](code-browser.md)
+  - `docs/directory-map.md` → [directory-map.md](directory-map.md)
+  - `docs/index.md` → [index.md](index.md)
+- **[experiments/](../experiments/README.md)**
+  - **experiments/2025-10-20-baseline/**
+    - `experiments/2025-10-20-baseline/notes.md` → [notes.md](../experiments/2025-10-20-baseline/notes.md)
+  - `experiments/back-arrow.png` → [back-arrow.png](../experiments/back-arrow.png)
+  - `experiments/README.md` → [README.md](../experiments/README.md)
+- **[scripts/](../scripts/README.md)**
+  - `scripts/back-arrow.png` → [back-arrow.png](../scripts/back-arrow.png)
+  - `scripts/README.md` → [README.md](../scripts/README.md)
+  - `scripts/run_training.py` → [run_training.py](../scripts/run_training.py) · [preview](code/scripts/run_training.md)
+- **[src/](../src/README.md)**
+  - **[src/algorithms/](../src/algorithms/README.md)**
+    - `src/algorithms/__init__.py` → [__init__.py](../src/algorithms/__init__.py) · [preview](code/src/algorithms/__init__.md)
+    - `src/algorithms/adam.py` → [adam.py](../src/algorithms/adam.py) · [preview](code/src/algorithms/adam.md)
+    - `src/algorithms/momentum.py` → [momentum.py](../src/algorithms/momentum.py) · [preview](code/src/algorithms/momentum.md)
+    - `src/algorithms/README.md` → [README.md](../src/algorithms/README.md)
+    - `src/algorithms/sgd.py` → [sgd.py](../src/algorithms/sgd.py) · [preview](code/src/algorithms/sgd.md)
+  - **[src/data/](../src/data/README.md)**
+    - `src/data/__init__.py` → [__init__.py](../src/data/__init__.py) · [preview](code/src/data/__init__.md)
+    - `src/data/loaders.py` → [loaders.py](../src/data/loaders.py) · [preview](code/src/data/loaders.md)
+    - `src/data/README.md` → [README.md](../src/data/README.md)
+  - **[src/models/](../src/models/README.md)**
+    - `src/models/__init__.py` → [__init__.py](../src/models/__init__.py) · [preview](code/src/models/__init__.md)
+    - `src/models/linear_regression.py` → [linear_regression.py](../src/models/linear_regression.py) · [preview](code/src/models/linear_regression.md)
+    - `src/models/README.md` → [README.md](../src/models/README.md)
+  - **[src/training/](../src/training/README.md)**
+    - **src/training/legacy/**
+      - `src/training/legacy/grad_desc_prob.py` → [grad_desc_prob.py](../src/training/legacy/grad_desc_prob.py) · [preview](code/src/training/legacy/grad_desc_prob.md)
+    - `src/training/__init__.py` → [__init__.py](../src/training/__init__.py) · [preview](code/src/training/__init__.md)
+    - `src/training/README.md` → [README.md](../src/training/README.md)
+    - `src/training/train.py` → [train.py](../src/training/train.py) · [preview](code/src/training/train.md)
+  - **[src/utils/](../src/utils/README.md)**
+    - `src/utils/__init__.py` → [__init__.py](../src/utils/__init__.py) · [preview](code/src/utils/__init__.md)
+    - `src/utils/config.py` → [config.py](../src/utils/config.py) · [preview](code/src/utils/config.md)
+    - `src/utils/logging.py` → [logging.py](../src/utils/logging.py) · [preview](code/src/utils/logging.md)
+    - `src/utils/README.md` → [README.md](../src/utils/README.md)
+  - `src/__init__.py` → [__init__.py](../src/__init__.py) · [preview](code/src/__init__.md)
+  - `src/back-arrow.png` → [back-arrow.png](../src/back-arrow.png)
+  - `src/README.md` → [README.md](../src/README.md)
+- **[tests/](../tests/README.md)**
+  - `tests/back-arrow.png` → [back-arrow.png](../tests/back-arrow.png)
+  - `tests/README.md` → [README.md](../tests/README.md)
+  - `tests/test_optimizers.py` → [test_optimizers.py](../tests/test_optimizers.py) · [preview](code/tests/test_optimizers.md)
+- `README.md` → [README.md](../README.md)

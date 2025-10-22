@@ -1,0 +1,19 @@
+experiment:
+  name: "baseline"
+  seed: 42
+  output_dir: "experiments/2025-10-20-baseline"
+data:
+  kind: "synthetic_linear"
+  n_samples: 512
+  n_features: 3
+  noise_std: 0.1
+model:
+  type: "linear_regression"
+training:
+  algorithm: "sgd"  # choices: sgd | momentum | adam
+  epochs: 100
+  lr: 0.05
+  batch_size: 64
+logging:
+  level: "INFO"
+  log_dir: "experiments/logs"

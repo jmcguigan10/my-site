@@ -1,0 +1,727 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Visual Filesystem Prototyper</title>
+    <link rel="icon" type="image/png" href="../../favicon.png">
+    <link rel="stylesheet" href="filemaker.css">
+  </head>
+  <body>
+    <header>
+    <button class="btn" id="newDir">New Directory</button>
+
+    <label class="upload" for="picker">Add files…</label>
+    <input id="picker" type="file" multiple />
+
+    <label class="upload" for="folderPicker">Add folder…</label>
+    <input id="folderPicker" type="file" webkitdirectory directory />
+
+    <div class="size">
+      <span>Size</span>
+      <input id="sizeSlider" type="range" min="0.7" max="2.0" step="0.1" value="1" />
+    </div>
+
+    <button class="btn" id="exportZip">Export Zip</button>
+    <span class="hint">Drag dir’s right dot to a child’s left dot. Click a wire then Delete, or double‑click it. Shift‑click a child’s left dot to detach.</span>
+  </header>
+
+  <div class="stage" id="stage">
+    <div class="grid"></div>
+    <svg class="wires" id="wires"></svg>
+    <div class="nodes" id="nodes"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script>
+  (function(){
+    const stage   = document.getElementById('stage');
+    const nodesEl = document.getElementById('nodes');
+    const wiresEl = document.getElementById('wires');
+    const picker  = document.getElementById('picker');
+    const folderPicker = document.getElementById('folderPicker');
+    const sizeSlider = document.getElementById('sizeSlider');
+
+    const state = {
+      nextId: 1,
+      nodes: new Map(),  // id -> { id, type:'file'|'dir', name, x, y, file?, parentId?, children:Set, isRoot?:boolean, collapsed?:boolean }
+      drag: null,        // { id, dx, dy, pointerId, el }
+      link: null,        // { fromId, fromSide:'left'|'right', fromPortEl, tempLine, hoverPortEl }
+      selectedWireChildId: null,
+      selectedNodeId: null
+    };
+
+    function uid(){ return String(state.nextId++); }
+    function stageRect(){ return stage.getBoundingClientRect(); }
+
+    function centerOf(el){
+      const r = el.getBoundingClientRect();
+      const s = stageRect();
+      return { x: r.left - s.left + r.width/2, y: r.top - s.top + r.height/2 };
+    }
+    function centerOfPort(portEl){
+      const r = portEl.getBoundingClientRect();
+      const s = stageRect();
+      return { x: r.left - s.left + r.width/2, y: r.top - s.top + r.height/2 };
+    }
+    function extendedSegment(a, b, extra = 24){
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const len = Math.hypot(dx, dy) || 1;
+      return { x1: a.x - dx/len*extra, y1: a.y - dy/len*extra, x2: b.x + dx/len*extra, y2: b.y + dy/len*extra };
+    }
+    function prettySize(bytes){
+      if (!bytes) return 'empty';
+      const u = ['B','KB','MB','GB','TB'];
+      let i = 0; let n = bytes;
+      while (n >= 1024 && i < u.length - 1){ n /= 1024; i++; }
+      return `${n.toFixed(1)} ${u[i]}`;
+    }
+
+    function makeNodeEl(node){
+      const el = document.createElement('div');
+      el.className = `node ${node.type}`;
+      el.dataset.id = node.id;
+      el.style.left = `${node.x}px`;
+      el.style.top  = `${node.y}px`;
+
+      const controls = document.createElement('div');
+      controls.className = 'controls';
+
+      // delete button (files + dirs)
+      const delBtn = document.createElement('button');
+      delBtn.className = 'ctrl-btn';
+      delBtn.title = 'Delete';
+      delBtn.textContent = '×';
+      delBtn.addEventListener('click', e => { e.stopPropagation(); removeNode(node.id); });
+      controls.appendChild(delBtn);
+
+      // dir-only toggle
+      if (node.type === 'dir'){
+        const tog = document.createElement('button');
+        tog.className = 'ctrl-btn';
+        tog.title = 'Show/Hide contents';
+        tog.textContent = node.collapsed ? '▸' : '▾';
+        tog.addEventListener('click', e => {
+          e.stopPropagation();
+          node.collapsed = !node.collapsed;
+          tog.textContent = node.collapsed ? '▸' : '▾';
+          updateVisibility();
+        });
+        // put toggle first for easy thumb reach
+        controls.insertBefore(tog, controls.firstChild);
+      }
+
+      const title = document.createElement('div');
+      title.className = 'title';
+      title.textContent = node.name;
+
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      meta.textContent = node.type === 'file' ? prettySize(node.file?.size || 0) : 'directory';
+
+      el.appendChild(controls);
+      el.appendChild(title);
+      el.appendChild(meta);
+
+      // helper to make a port with side-aware drag
+      const makePort = side => {
+        const p = document.createElement('div');
+        p.className = `port port-${side}`;
+        p.dataset.side = side;
+        p.title = side === 'right' ? 'Drag to child' : 'Drag to parent';
+        // Fast detach: Shift/Alt click or right-click on a child's LEFT port
+        p.addEventListener('pointerdown', e => {
+          if ((e.shiftKey || e.altKey) && side === 'left' && node.parentId){
+            e.preventDefault(); e.stopPropagation(); detach(node.id); return;
+          }
+          e.preventDefault();
+          e.stopPropagation();
+          const temp = line(0, 0, 0, 0, true);
+          state.link = { fromId: node.id, fromSide: side, fromPortEl: p, tempLine: temp, hoverPortEl: null };
+          document.addEventListener('pointermove', onLinkMove);
+          document.addEventListener('pointerup', onLinkEnd, { once:true });
+        });
+        p.addEventListener('contextmenu', e => {
+          if (side === 'left' && node.parentId){ e.preventDefault(); detach(node.id); }
+        });
+        return p;
+      };
+
+      if (node.type === 'file'){
+        el.appendChild(makePort('left'));
+      } else if (node.type === 'dir'){
+        // inline rename
+        title.title = 'Double-click to rename';
+        title.addEventListener('dblclick', e => { e.stopPropagation(); startDirRename(title, node); });
+        title.addEventListener('pointerdown', e => { if (e.detail >= 2) { e.stopPropagation(); } });
+        if (!node.isRoot) el.appendChild(makePort('left'));
+        el.appendChild(makePort('right'));
+      }
+
+      // clicking a node selects it (unless you clicked a port or control)
+      el.addEventListener('click', e => {
+        if (e.target.closest('.port') || e.target.closest('.ctrl-btn')) return;
+        selectNode(node.id);
+      });
+
+      // Move
+      el.addEventListener('pointerdown', e => {
+        if (e.target.classList.contains('port') || e.target.closest('.ctrl-btn')) return;
+        const t = e.target.closest('.title');
+        if (t && t.isContentEditable) return;
+        if (t && e.detail >= 2) return;
+        e.preventDefault();
+        const rect = el.getBoundingClientRect();
+        state.drag = { id: node.id, dx: e.clientX - rect.left, dy: e.clientY - rect.top, pointerId: e.pointerId, el };
+        el.classList.add('dragging');
+        el.setPointerCapture(e.pointerId);
+      });
+
+      el.addEventListener('pointermove', e => {
+        if (!state.drag || state.drag.id !== node.id || e.pointerId !== state.drag.pointerId) return;
+        e.preventDefault();
+        const s = stageRect();
+        let x = e.clientX - s.left - state.drag.dx;
+        let y = e.clientY - s.top  - state.drag.dy;
+        // keep inside using rendered size (accounts for scaling)
+        const r = el.getBoundingClientRect();
+        x = Math.max(0, Math.min(x, stage.clientWidth  - r.width));
+        y = Math.max(0, Math.min(y, stage.clientHeight - r.height));
+        node.x = x; node.y = y;
+        el.style.left = `${x}px`; el.style.top = `${y}px`;
+        redrawWires();
+      });
+
+      function endDrag(e){
+        if (!state.drag || state.drag.id !== node.id) return;
+        state.drag = null;
+        el.classList.remove('dragging');
+        try { el.releasePointerCapture(e.pointerId); } catch {}
+      }
+      el.addEventListener('pointerup', endDrag);
+      el.addEventListener('pointercancel', endDrag);
+      el.addEventListener('lostpointercapture', endDrag);
+
+      nodesEl.appendChild(el);
+      return el;
+    }
+
+    function startDirRename(titleEl, node){
+      if (titleEl.isContentEditable) return;
+      const original = node.name;
+      titleEl.contentEditable = 'true';
+      titleEl.spellcheck = false;
+      const r = document.createRange(); r.selectNodeContents(titleEl);
+      const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      titleEl.focus();
+      function commit(cancel){
+        titleEl.contentEditable = 'false';
+        const text = titleEl.textContent.trim();
+        if (!cancel && text) { node.name = text; } else { titleEl.textContent = original; }
+        redrawWires();
+      }
+      function onKey(e){
+        if (e.key === 'Enter'){ e.preventDefault(); titleEl.removeEventListener('keydown', onKey); commit(false); }
+        if (e.key === 'Escape'){ e.preventDefault(); titleEl.removeEventListener('keydown', onKey); commit(true); }
+      }
+      titleEl.addEventListener('keydown', onKey);
+      titleEl.addEventListener('blur', () => { titleEl.removeEventListener('keydown', onKey); commit(false); }, { once:true });
+    }
+
+    function addDirectory(name = `folder-${state.nextId}`, x = 40, y = 40, isRoot = false){
+      const id = uid();
+      const node = { id, type:'dir', name, x, y, children: new Set(), parentId: null, isRoot, collapsed:false };
+      state.nodes.set(id, node);
+      makeNodeEl(node);
+      updateVisibility();
+      redrawWires();
+      return node;
+    }
+    function addFileNode(file, x = 120, y = 120){
+      const id = uid();
+      const name = file.name || `file-${id}`;
+      const node = { id, type:'file', name, file, x, y, parentId: null };
+      state.nodes.set(id, node);
+      makeNodeEl(node);
+      updateVisibility();
+      redrawWires();
+      return node;
+    }
+
+    function line(x1,y1,x2,y2, temp=false, meta=null){
+      const l = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      l.setAttribute('x1', x1); l.setAttribute('y1', y1);
+      l.setAttribute('x2', x2); l.setAttribute('y2', y2);
+      l.classList.add('wire'); if (temp) l.classList.add('temp');
+      if (!temp && meta){
+        l.dataset.childId = meta.childId;
+        l.dataset.parentId = meta.parentId;
+        l.addEventListener('click', e => { e.stopPropagation(); selectWire(meta.childId, l); });
+        l.addEventListener('dblclick', e => { e.stopPropagation(); detach(meta.childId); });
+      }
+      wiresEl.appendChild(l);
+      return l;
+    }
+
+    function selectWire(childId, lineEl){
+      [...wiresEl.querySelectorAll('line.wire.selected')].forEach(n => n.classList.remove('selected'));
+      if (lineEl){ lineEl.classList.add('selected'); }
+      state.selectedWireChildId = childId || null;
+      // deselect node if you selected a wire
+      if (childId) selectNode(null);
+    }
+    function clearWireSelection(){ selectWire(null, null); }
+
+    function selectNode(nodeId){
+      // clear old selection
+      for (const el of nodesEl.querySelectorAll('.node.selected')) el.classList.remove('selected');
+      state.selectedNodeId = nodeId;
+      if (!nodeId) return;
+      const el = nodesEl.querySelector(`.node[data-id="${nodeId}"]`);
+      if (el) el.classList.add('selected');
+      // deselect wire if you selected a node
+      clearWireSelection();
+    }
+
+    document.addEventListener('keydown', e => {
+      if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+      if (document.activeElement && document.activeElement.isContentEditable) return;
+      // Node deletion wins over wire deletion
+      if (state.selectedNodeId){ removeNode(state.selectedNodeId); return; }
+      if (state.selectedWireChildId){ detach(state.selectedWireChildId); return; }
+    });
+
+    // clicking empty space clears selection
+    document.addEventListener('pointerdown', e => {
+      if (!e.target.closest('.node')) { selectNode(null); clearWireSelection(); }
+    });
+
+    function isNodeVisible(node){
+      // A node is invisible if any ancestor directory is collapsed.
+      let p = node.parentId ? state.nodes.get(node.parentId) : null;
+      while (p){
+        if (p.type === 'dir' && p.collapsed) return false;
+        p = p.parentId ? state.nodes.get(p.parentId) : null;
+      }
+      return true;
+    }
+
+    function updateVisibility(){
+      for (const node of state.nodes.values()){
+        const el = nodesEl.querySelector(`.node[data-id="${node.id}"]`);
+        if (!el) continue;
+        const visible = isNodeVisible(node);
+        el.style.display = visible ? '' : 'none';
+        // if you hide a selected node, clear selection
+        if (!visible && state.selectedNodeId === node.id) selectNode(null);
+      }
+      redrawWires();
+    }
+
+    function redrawWires(){
+      [...wiresEl.querySelectorAll('line.wire:not(.temp)')].forEach(n => n.remove());
+      for (const node of state.nodes.values()){
+        if (!node.parentId) continue;
+        const parent = state.nodes.get(node.parentId);
+        if (!isNodeVisible(node) || !isNodeVisible(parent)) continue; // hide wires to hidden nodes
+        const childEl  = nodesEl.querySelector(`.node[data-id="${node.id}"]`);
+        const parentEl = nodesEl.querySelector(`.node[data-id="${node.parentId}"]`);
+        if (!childEl || !parentEl) continue;
+        const parentPort = parentEl.querySelector('.port-right') || parentEl.querySelector('.port');
+        const childPort  = childEl.querySelector('.port-left')  || childEl.querySelector('.port');
+        const a = parentPort ? centerOfPort(parentPort) : centerOf(parentEl);
+        const b = childPort  ? centerOfPort(childPort)  : centerOf(childEl);
+        const { x1, y1, x2, y2 } = extendedSegment(a, b);
+        const l = line(x1, y1, x2, y2, false, { childId: node.id, parentId: node.parentId });
+        if (state.selectedWireChildId === node.id) l.classList.add('selected');
+      }
+    }
+
+    function onLinkMove(e){
+      if (!state.link) return;
+      const a = centerOfPort(state.link.fromPortEl);
+      const s = stageRect();
+      let x = e.clientX - s.left, y = e.clientY - s.top;
+
+      const expectSide = state.link.fromSide === 'left' ? 'right' : 'left';
+      const target = document.elementFromPoint(e.clientX, e.clientY);
+      let port = target && target.closest?.(`.port.port-${expectSide}`);
+
+      if (state.link.hoverPortEl && state.link.hoverPortEl !== port){
+        state.link.hoverPortEl.classList.remove('drop-ok');
+      }
+
+      if (port){
+        const toNodeEl = port.closest('.node');
+        const fromNode = state.nodes.get(state.link.fromId);
+        const toNode   = state.nodes.get(toNodeEl?.dataset.id || '');
+        const can = connectionSemantics(fromNode, state.link.fromSide, toNode, expectSide);
+        if (can && canAttach(can.childId, can.parentId)){
+          port.classList.add('drop-ok');
+          state.link.hoverPortEl = port;
+          const b = centerOfPort(port);
+          x = b.x; y = b.y;
+        } else {
+          state.link.hoverPortEl = null;
+        }
+      } else {
+        state.link.hoverPortEl = null;
+      }
+
+      state.link.tempLine.setAttribute('x1', a.x);
+      state.link.tempLine.setAttribute('y1', a.y);
+      state.link.tempLine.setAttribute('x2', x);
+      state.link.tempLine.setAttribute('y2', y);
+    }
+
+    function onLinkEnd(){
+      document.removeEventListener('pointermove', onLinkMove);
+      if (!state.link) return;
+      state.link.tempLine.remove();
+      if (state.link.hoverPortEl){ state.link.hoverPortEl.classList.remove('drop-ok'); }
+      const expectSide = state.link.fromSide === 'left' ? 'right' : 'left';
+      const toPort = state.link.hoverPortEl;
+      if (toPort){
+        const fromNode = state.nodes.get(state.link.fromId);
+        const toNode   = state.nodes.get(toPort.closest('.node').dataset.id);
+        const proposal = connectionSemantics(fromNode, state.link.fromSide, toNode, expectSide);
+        if (proposal && canAttach(proposal.childId, proposal.parentId)){
+          attach(proposal.childId, proposal.parentId);
+          redrawWires();
+        }
+      }
+      state.link = null;
+    }
+
+    function connectionSemantics(fromNode, fromSide, toNode, toSide){
+      if (!fromNode || !toNode) return null;
+      if (!((fromSide === 'right' && toSide === 'left') || (fromSide === 'left' && toSide === 'right'))) return null;
+      if (fromSide === 'right' && fromNode.type === 'dir'){
+        return { parentId: fromNode.id, childId: toNode.id };
+      }
+      if (fromSide === 'left' && toNode.type === 'dir'){
+        return { parentId: toNode.id, childId: fromNode.id };
+      }
+      return null;
+    }
+
+    function canAttach(childId, dirId){
+      const child = state.nodes.get(childId);
+      const parent = state.nodes.get(dirId);
+      if (!child || !parent) return false;
+      if (parent.type !== 'dir') return false;
+      if (childId === dirId) return false;
+      if (child.type === 'dir' && child.isRoot) return false; // root can’t be a child
+      if (child.type === 'dir'){
+        let p = parent;
+        while (p){
+          if (p.id === child.id) return false;
+          p = p.parentId ? state.nodes.get(p.parentId) : null;
+        }
+      }
+      return true;
+    }
+
+    function attach(childId, dirId){
+      const child = state.nodes.get(childId);
+      const parent = state.nodes.get(dirId);
+      if (!child || !parent) return;
+      if (child.parentId){
+        const old = state.nodes.get(child.parentId);
+        old?.children?.delete(childId);
+      }
+      child.parentId = parent.id;
+      parent.children?.add(childId);
+      updateVisibility();
+    }
+
+    function detach(childId){
+      const child = state.nodes.get(childId);
+      if (!child || !child.parentId) { clearWireSelection(); return; }
+      const parent = state.nodes.get(child.parentId);
+      parent?.children?.delete(childId);
+      child.parentId = null;
+      clearWireSelection();
+      updateVisibility();
+      redrawWires();
+    }
+
+    function removeNode(nodeId){
+      const target = state.nodes.get(nodeId);
+      if (!target) return;
+      // gather all descendants incl. self
+      const toRemove = [];
+      function walk(n){
+        toRemove.push(n.id);
+        if (n.type === 'dir' && n.children){
+          for (const childId of n.children){
+            const c = state.nodes.get(childId);
+            if (c) walk(c);
+          }
+        }
+      }
+      walk(target);
+
+      // unlink from parent
+      if (target.parentId){
+        const p = state.nodes.get(target.parentId);
+        p?.children?.delete(target.id);
+      }
+
+      // delete dom + state
+      for (const id of toRemove){
+        const n = state.nodes.get(id);
+        const el = nodesEl.querySelector(`.node[data-id="${id}"]`);
+        if (el) el.remove();
+        if (n?.type === 'dir'){
+          // nothing else
+        }
+        state.nodes.delete(id);
+        if (state.selectedNodeId === id) state.selectedNodeId = null;
+        if (state.selectedWireChildId === id) state.selectedWireChildId = null;
+      }
+      updateVisibility();
+      redrawWires();
+    }
+
+    // ---------- Import & inputs ----------
+    ;['dragenter','dragover','dragleave','drop'].forEach(evt => {
+      stage.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); });
+    });
+
+    stage.addEventListener('drop', async e => {
+      const s = stageRect();
+      const dropX = e.clientX - s.left;
+      const dropY = e.clientY - s.top;
+
+      const items = Array.from(e.dataTransfer?.items || []);
+      const hasTraverseAPI = items.some(it => typeof it.getAsFileSystemHandle === 'function' || typeof it.webkitGetAsEntry === 'function');
+
+      if (hasTraverseAPI){
+        await importDroppedItems(items, dropX, dropY);
+        redrawWires();
+        return;
+      }
+
+      const files = [...(e.dataTransfer?.files || [])];
+      importFileList(files, dropX, dropY);
+    });
+
+    picker.addEventListener('change', e => {
+      importFileList(e.target.files, 100, 120);
+      picker.value = '';
+    });
+    folderPicker.addEventListener('change', e => {
+      importFileList(e.target.files, 80, 80);
+      folderPicker.value = '';
+    });
+
+    function importFileList(fileList, baseX = 80, baseY = 80){
+      const files = Array.from(fileList || []);
+      if (!files.length) return;
+
+      const dx = 200, dy = 90;
+      const columnY = new Map();
+      function nextPos(depth){
+        const x = baseX + depth*dx;
+        const y = columnY.get(depth) ?? baseY;
+        columnY.set(depth, y + dy);
+        return { x, y };
+      }
+
+      const dirNodes = new Map();
+      function ensureDir(pathParts){
+        const key = pathParts.join('/');
+        if (dirNodes.has(key)) return dirNodes.get(key);
+        const depth = pathParts.length - 1;
+        const name = pathParts[pathParts.length - 1] || 'root';
+        const { x, y } = nextPos(Math.max(0, depth));
+        const node = addDirectory(name, x, y);
+        dirNodes.set(key, node);
+        if (pathParts.length > 1){
+          const parent = ensureDir(pathParts.slice(0, -1));
+          attach(node.id, parent.id);
+        }
+        return node;
+      }
+
+      const hasRel = files.some(f => f.webkitRelativePath && f.webkitRelativePath.includes('/'));
+      if (!hasRel){
+        let offset = 0;
+        for (const f of files){
+          addFileNode(f, baseX + offset, baseY + offset);
+          offset += 18;
+        }
+        return;
+      }
+
+      for (const f of files){
+        const rp = (f.webkitRelativePath || f.name).replace(/\\/g,'/');
+        const parts = rp.split('/');
+        parts.pop();
+        for (let i = 1; i <= parts.length; i++){
+          ensureDir(parts.slice(0, i));
+        }
+      }
+
+      for (const f of files){
+        const rp = (f.webkitRelativePath || f.name).replace(/\\/g,'/');
+        const parts = rp.split('/');
+        const fileName = parts.pop();
+        const parentKey = parts.join('/');
+        const parent = dirNodes.get(parentKey) || null;
+        const depth = parts.length;
+        const { x, y } = nextPos(depth);
+        const safeFile = new File([f], fileName, { type: f.type, lastModified: f.lastModified });
+        const node = addFileNode(safeFile, x, y);
+        if (parent) attach(node.id, parent.id);
+      }
+      redrawWires();
+    }
+
+    async function importDroppedItems(items, baseX, baseY){
+      const dx = 200, dy = 90;
+      const columnY = new Map();
+      function nextPos(depth){
+        const x = baseX + depth*dx;
+        const y = columnY.get(depth) ?? baseY;
+        columnY.set(depth, y + dy);
+        return { x, y };
+      }
+
+      const tasks = [];
+      for (const item of items){
+        if (typeof item.getAsFileSystemHandle === 'function'){
+          const handle = await item.getAsFileSystemHandle();
+          if (!handle) continue;
+          tasks.push(traverseHandle(handle, null, 0));
+        } else if (typeof item.webkitGetAsEntry === 'function'){
+          const entry = item.webkitGetAsEntry();
+          if (!entry) continue;
+          tasks.push(traverseEntry(entry, null, 0));
+        }
+      }
+      await Promise.all(tasks);
+
+      async function traverseHandle(handle, parentDirId, depth){
+        if (handle.kind === 'file'){
+          const file = await handle.getFile();
+          const { x, y } = nextPos(depth);
+          const node = addFileNode(file, x, y);
+          if (parentDirId) attach(node.id, parentDirId);
+          return;
+        }
+        if (handle.kind === 'directory'){
+          const { x, y } = nextPos(depth);
+          const dirNode = addDirectory(handle.name, x, y);
+          if (parentDirId) attach(dirNode.id, parentDirId);
+          for await (const [, child] of handle.entries()){
+            await traverseHandle(child, dirNode.id, depth + 1);
+          }
+        }
+      }
+      function readAllEntries(dirEntry){
+        const reader = dirEntry.createReader();
+        return new Promise((resolve, reject) => {
+          const out = [];
+          function pump(){
+            reader.readEntries(batch => {
+              if (batch.length){ out.push(...batch); pump(); }
+              else resolve(out);
+            }, reject);
+          }
+          pump();
+        });
+      }
+      function getFileFromEntry(fileEntry){
+        return new Promise((resolve, reject) => fileEntry.file(resolve, reject));
+      }
+      async function traverseEntry(entry, parentDirId, depth){
+        if (entry.isFile){
+          const file = await getFileFromEntry(entry);
+          const { x, y } = nextPos(depth);
+          const node = addFileNode(file, x, y);
+          if (parentDirId) attach(node.id, parentDirId);
+          return;
+        }
+        if (entry.isDirectory){
+          const { x, y } = nextPos(depth);
+          const dirNode = addDirectory(entry.name, x, y);
+          if (parentDirId) attach(dirNode.id, parentDirId);
+          const children = await readAllEntries(entry);
+          for (const child of children){
+            await traverseEntry(child, dirNode.id, depth + 1);
+          }
+        }
+      }
+    }
+
+    // Header controls
+    document.getElementById('newDir').addEventListener('click', () => {
+      const x = 40 + Math.round(Math.random()*200);
+      const y = 40 + Math.round(Math.random()*120);
+      addDirectory(undefined, x, y);
+    });
+
+    sizeSlider.addEventListener('input', e => {
+      document.documentElement.style.setProperty('--node-scale', e.target.value);
+      // Wires use visual geometry; just redraw to be safe.
+      redrawWires();
+    });
+
+    document.getElementById('exportZip').addEventListener('click', async () => {
+      if (typeof JSZip === 'undefined'){ alert('JSZip failed to load.'); return; }
+      const zip = new JSZip();
+      const usedPaths = new Set();
+
+      function safePath(p){
+        if (!usedPaths.has(p)){ usedPaths.add(p); return p; }
+        let i = 2;
+        const m = p.match(/(\.[^./]+)$/);
+        const ext = m ? m[1] : '';
+        const stem = ext ? p.slice(0, -ext.length) : p;
+        let candidate = `${stem} (${i})${ext}`;
+        while (usedPaths.has(candidate)){ i++; candidate = `${stem} (${i})${ext}`; }
+        usedPaths.add(candidate);
+        return candidate;
+      }
+
+      function pathFor(node){
+        const parts = [node.name];
+        let p = node.parentId ? state.nodes.get(node.parentId) : null;
+        while (p){ parts.unshift(p.name); p = p.parentId ? state.nodes.get(p.parentId) : null; }
+        return parts.join('/');
+      }
+
+      for (const n of state.nodes.values()){
+        if (n.type !== 'dir') continue;
+        const p = pathFor(n);
+        const hasChildren = n.children && n.children.size > 0;
+        if (!hasChildren) zip.file(`${p}/.keep`, '');
+      }
+
+      for (const n of state.nodes.values()){
+        if (n.type !== 'file') continue;
+        let p = pathFor(n);
+        p = safePath(p);
+        zip.file(p, n.file);
+      }
+
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'project.zip';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    });
+
+    // initial seed: root dir is one-sided
+    addDirectory('root', 60, 80, true);
+  })();
+  </script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script src="filemaker.js"></script>
+  </body>
+</html>

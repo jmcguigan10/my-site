@@ -1,0 +1,19 @@
+experiment:
+  name: "sgd-baseline"
+  seed: 1337
+  output_dir: "experiments/2025-10-20-sgd"
+data:
+  kind: "synthetic_linear"
+  n_samples: 1024
+  n_features: 5
+  noise_std: 0.1
+model:
+  type: "linear_regression"
+training:
+  algorithm: "sgd"
+  epochs: 150
+  lr: 0.05
+  batch_size: 64
+logging:
+  level: "INFO"
+  log_dir: "experiments/logs"

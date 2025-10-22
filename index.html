@@ -3,17 +3,67 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>My Site</title>
+    <title>JM · Projects & Tools</title>
     <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="stylesheet" href="assets/styles.css">
   </head>
   <body>
-    <main>
-      <h1>Hello, internet.</h1>
-      <p>If you're reading this, Git did its job.</p>
-      <button id="cta">Click me</button>
+    <header class="site-header">
+      <div class="wrap">
+        <a class="brand" href="index.html">JM</a>
+        <nav class="nav">
+          <a class="active" href="index.html">Home</a>
+          <a href="tools/filemaker/">Tool</a>
+          <a href="ml/">ML Project</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <section class="hero">
+        <h1>Projects & Tools</h1>
+        <p class="lede">A clean portfolio hub with a hands-on prototyping tool and a machine learning project, all packaged for deployment.</p>
+        <div class="cta-row">
+          <a class="btn primary" href="tools/filemaker/">Explore the tool</a>
+          <a class="btn" href="ml/">View ML project</a>
+        </div>
+      </section>
+
+      <section id="features" class="grid-2">
+        <div class="feature">
+          <h2>Visual Filesystem Prototyper</h2>
+          <p class="muted">Sketch information architectures by arranging directories and files, then export to a zip when you're ready.</p>
+          <div class="cta-row">
+            <a class="btn" href="tools/filemaker/">Learn more</a>
+            <a class="btn" href="tools/filemaker/filemaker.html">Launch</a>
+          </div>
+        </div>
+        <div class="feature">
+          <h2>Machine Learning Project</h2>
+          <p class="muted">Readable source, zero setup. Browse files, download artifacts, and understand the structure quickly.</p>
+          <div class="cta-row">
+            <a class="btn" href="ml/">Open project</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid-2">
+        <div class="card">
+          <h2>About</h2>
+          <p>Portfolio site scaffolding with an emphasis on clarity, speed, and clean source presentation.</p>
+        </div>
+        <div class="card">
+          <h2>Deploy</h2>
+          <p>Drop the folder onto static hosting and keep the included <code>CNAME</code> if you're using a custom domain.</p>
+        </div>
+      </section>
     </main>
-    <script>
-      document.getElementById('cta').addEventListener('click', () => alert('Deployed via Git!'));
-    </script>
+
+    <footer class="site-footer">
+      <div class="wrap">
+        <p>© <span id="year"></span> JM. All rights reserved.</p>
+      </div>
+    </footer>
+    <script src="assets/script.js"></script>
   </body>
 </html>

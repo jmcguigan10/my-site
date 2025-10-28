@@ -61,7 +61,7 @@ pre.code{background:#0e0e10;border:1px solid #1f1f22;border-radius:10px;padding:
 .git-handle a{color:inherit}
 .git-handle img{height:22px;width:22px;display:block}
 .portrait{margin:0}
-.portrait img{display:block;height:clamp(220px,38vh,420px);width:auto;border-radius:14px;border:1px solid #2a2a2a;object-fit:cover;box-shadow:0 10px 40px rgba(0,0,0,.35)}
+.portrait img{display:block;height:clamp(260px,45vh,520px);width:auto;border-radius:14px;border:1px solid #2a2a2a;object-fit:cover;box-shadow:0 10px 40px rgba(0,0,0,.35)}
 .affiliation{display:flex;align-items:center;justify-content:center;gap:18px;width:auto;flex-wrap:wrap}
 .utk-logo{height:68px;width:auto;object-fit:contain}
 .depts{font-size:clamp(14px,2.2vw,18px);line-height:1.25;color:var(--ink);text-align:center}

@@ -1,0 +1,30 @@
+{
+  "synced_at": "2025-12-13T08:02:25+00:00",
+  "git": {
+    "commit": "7b131061390aa4f3e677027f8b4263c05a677295",
+    "short": "7b13106",
+    "branch": "main"
+  },
+  "plots": [
+    {
+      "kind": "loss",
+      "filename": "S17_L5_HS384_DR0.01_WD0.0001_BS6144_RM3_loss.png",
+      "relative": "../../assets/ntrno/loss/S17_L5_HS384_DR0.01_WD0.0001_BS6144_RM3_loss.png"
+    },
+    {
+      "kind": "loss",
+      "filename": "S43_L5_HS384_DR0.01_WD0.0001_BS6144_RM3_loss.png",
+      "relative": "../../assets/ntrno/loss/S43_L5_HS384_DR0.01_WD0.0001_BS6144_RM3_loss.png"
+    },
+    {
+      "kind": "f1_t_sweep",
+      "filename": "S17_L6_HS256_DR0.01_WD0.0001_BS4192_RM3_f1_sweep.png",
+      "relative": "../../assets/ntrno/f1_t_sweep/S17_L6_HS256_DR0.01_WD0.0001_BS4192_RM3_f1_sweep.png"
+    },
+    {
+      "kind": "f1_t_sweep",
+      "filename": "S43_L5_HS384_DR0.01_WD0.0001_BS6144_RM3_f1_sweep.png",
+      "relative": "../../assets/ntrno/f1_t_sweep/S43_L5_HS384_DR0.01_WD0.0001_BS6144_RM3_f1_sweep.png"
+    }
+  ]
+}

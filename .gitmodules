@@ -1,0 +1,4 @@
+[submodule "ntrno"]
+	path = external/ntrno
+	url = https://github.com/jmcguigan10/ntrno_stblty_clssfr.git
+	branch = main

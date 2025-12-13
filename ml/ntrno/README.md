@@ -1,14 +1,76 @@
 
-# FFI Stability Classifier — Training Pack
+# FFI Stability Classifier
 
-This bundle gives you a single-command training pipeline that:
-- trains **two models** (seeds `17` and `43`) on your NPZ datasets,
-- logs accuracy/precision/recall/F1 each epoch,
-- prints the summary line exactly like you asked,
-- makes **loss** and **F1-vs-threshold** plots,
-- measures **inference timings** over lots of points and stores the per-sample timestamps to CSV,
-- exports **TorchScript** and **ONNX** for C++ consumption,
-- writes everything to neat folders so future-you doesn’t curse present-you.
+## Pipeline Summary
+- loads 4 NPZ datasets,
+- concatenates them into one pool,
+- optionally **upweights the “random” slice** via per-sample weights,
+- trains a simple MLP with early stopping + LR warmup + plateau scheduler,
+- logs **loss + accuracy/precision/recall/F1** each epoch (at threshold 0.5),
+- sweeps thresholds 0.01..0.99 to find the **best F1 threshold**,
+- saves a model `.pt`, plots, and a combined `results.npy`,
+- benchmarks inference latency on CPU (and GPU if available).
+
+## Directory layout
+
+```text
+.
+├─ assets/
+│  └─ plots/                   # Example plots committed to git
+├─ config/
+│  ├─ train_example.yaml        # Example training config (EDIT data_dir!)
+│  └─ slurm_example.yaml        # Example Slurm config template
+├─ hpc/
+│  └─ train.slurm               # Generic Slurm wrapper (expects env vars)
+├─ scripts/
+│  └─ submit_slurm.py           # Builds sbatch command from YAML
+├─ src/
+│  └─ ntrno/
+│     ├─ __init__.py            # PROJECT_ROOT resolution
+│     ├─ cli/train.py           # main entrypoint: python -m ntrno.cli.train
+│     ├─ config.py              # dataclasses + defaults
+│     ├─ data.py                # NPZ loading, weights, split, scaling, loaders
+│     ├─ inference.py           # inference latency benchmark helper
+│     ├─ metrics.py             # threshold sweep + PR/F1 utilities
+│     ├─ models.py              # MLP classifier
+│     ├─ plots.py               # plot writers (dark/cyber styling)
+│     └─ train.py               # training loop + saving artifacts
+├─ tests/
+│  └─ test_train_smoke.py       # tiny synthetic smoke test
+├─ Makefile
+├─ requirements.txt
+└─ README.md
+```
+## Data you must provide
+By default, the trainer expects a data/ (found at https://zenodo.org/records) directory at the repo root containing exactly these four files:
+
+```text
+data/
+├─ train_data_stable_zerofluxfac.npz
+├─ train_data_stable_oneflavor.npz
+├─ train_data_random.npz
+└─ train_data_NSM_stable.npz
+```
+### Expected NPZ keys
+Each NPZ must contain the following arrays:
+```
+| File                              | Features key    | Labels key             |
+| --------------------------------- | --------------- | ---------------------- |
+| train_data_stable_zerofluxfac.npz | `X_zerofluxfac` | `unstable_zerofluxfac` |
+| train_data_stable_oneflavor.npz   | `X_oneflavor`   | `unstable_oneflavor`   |
+| train_data_random.npz             | `X_random`      | `unstable_random`      |
+| train_data_NSM_stable.npz         | `X_NSM_stable`  | `unstable_NSM_stable`  |
+```
+
+## Makefile shortcuts
+The Makefile wires everything up for you:
+
+```bash
+make venv
+make train
+make test
+make slurm
+```
 
 ## Plots at a glance
 
@@ -28,29 +90,33 @@ F1 vs threshold sweeps:
 
 ## Directory layout
 
-```
-ffi_stability_project/
-├── data/                         # Put your NPZ training files here
-│   ├── train_data_NSM_stable.npz
-│   ├── train_data_random.npz
-│   ├── train_data_stable_oneflavor.npz
-│   └── train_data_stable_zerofluxfac.npz
-├── slurm/
-│   └── auto_model.slurm          # Run this on the cluster
-├── src/
-│   ├── full_nn.py                # Architecture + training + export + plotting
-│   └── train_two_models.py       # Small wrapper that launches seeds 17 & 43
-├── models/
-│   ├── pytorch/                  # .pt state_dicts
-│   ├── torchscript/              # .ts files
-│   └── onnx/                     # .onnx files
-├── outputs/
-│   ├── logs/                     # per-run .txt logs
-│   ├── inference/                # inference_timestamps_*.csv
-│   └── plots/
-│       ├── loss_curves/          # loss_seed*.png
-│       └── f1_threshold/         # f1_vs_threshold_seed*.png
-└── README.md
+```text
+.
+├─ assets/
+│  └─ plots/                   # Example plots committed to git
+├─ config/
+│  ├─ train_example.yaml        # Example training config (EDIT data_dir!)
+│  └─ slurm_example.yaml        # Example Slurm config template
+├─ hpc/
+│  └─ train.slurm               # Generic Slurm wrapper (expects env vars)
+├─ scripts/
+│  └─ submit_slurm.py           # Builds sbatch command from YAML
+├─ src/
+│  └─ ntrno/
+│     ├─ __init__.py            # PROJECT_ROOT resolution
+│     ├─ cli/train.py           # main entrypoint: python -m ntrno.cli.train
+│     ├─ config.py              # dataclasses + defaults
+│     ├─ data.py                # NPZ loading, weights, split, scaling, loaders
+│     ├─ inference.py           # inference latency benchmark helper
+│     ├─ metrics.py             # threshold sweep + PR/F1 utilities
+│     ├─ models.py              # MLP classifier
+│     ├─ plots.py               # plot writers (dark/cyber styling)
+│     └─ train.py               # training loop + saving artifacts
+├─ tests/
+│  └─ test_train_smoke.py       # tiny synthetic smoke test
+├─ Makefile
+├─ requirements.txt
+└─ README.md
 ```
 
 ## Quick start (local)

@@ -3,11 +3,11 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>John McGuigan - About</title>
+    <title>John McGuigan - Experience</title>
     <link rel="icon" type="image/png" href="favicon.png">
     <link rel="stylesheet" href="assets/styles.css">
   </head>
-  <body class="site page-about">
+  <body class="site page-experience">
     <svg class="icon-sprite" aria-hidden="true" focusable="false">
       <symbol id="icon-folder" viewBox="0 0 24 20">
         <path d="M2 6.5c0-1.1.9-2 2-2h5l2 2h9c1.1 0 2 .9 2 2v8.5c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6.5z" fill="none" stroke="currentColor" stroke-width="1.6"/>
@@ -33,8 +33,8 @@
       <div class="wrap nav-shell">
         <a class="logo" href="index.html" aria-label="Go to About">JM</a>
         <nav class="main-nav" aria-label="Primary">
-          <a class="active" href="index.html"><span>01.</span> About</a>
-          <a href="experience.html"><span>02.</span> Experience</a>
+          <a href="index.html"><span>01.</span> About</a>
+          <a class="active" href="experience.html"><span>02.</span> Experience</a>
           <a href="projects.html"><span>03.</span> Projects</a>
           <a href="contact.html"><span>04.</span> Contact</a>
         </nav>
@@ -59,42 +59,19 @@
     </aside>
 
     <main class="page">
-      <section id="about" class="section hero">
-        <div class="hero-inner">
-          <div class="portrait-frame" data-reveal style="--delay: 0ms">
-            <img src="portrait.jpeg" alt="Portrait of John McGuigan">
-          </div>
-          <div class="hero-text" data-reveal style="--delay: 120ms">
-            <p class="eyebrow">Hello, I'm</p>
-            <h1>John McGuigan</h1>
-            <p class="lead">
-              I'm a mathematics and physics undergraduate at the University of Tennessee with a strong bias toward
-              problems that sit at the intersection of theory, computation, and reality. My work revolves around
-              using mathematical structure and machine learning to extract insight from complex physical systems,
-              especially in areas where brute-force simulation alone starts to fail. I spend most of my time moving
-              between proofs, code, and numerical experiments, trying to understand not just what works, but why it
-              works.
+      <section id="experience" class="section">
+        <div class="section-head" data-reveal>
+          <p class="section-kicker"><span>02.</span> Experience</p>
+          <h2>Poster Presentation</h2>
+          <p class="section-sub">Embedded below is your DNP poster for quick viewing.</p>
+        </div>
+        <div class="panel pdf-panel" data-reveal style="--delay: 120ms">
+          <object data="DNP_CEU_Symp_Poster.pdf" type="application/pdf">
+            <p>
+              Your browser cannot display embedded PDFs.
+              <a href="DNP_CEU_Symp_Poster.pdf">Download the poster</a> instead.
             </p>
-            <p class="lead">
-              My current focus is scientific machine learning for physics applications, particularly in neutrino
-              astrophysics and dynamical systems. I build ML pipelines that respect physical constraints, train on
-              large simulation-derived datasets using HPC resources, and treat models as tools for analysis rather
-              than magic boxes. Outside formal research, I pursue independent projects spanning applied geometry,
-              numerical methods, reinforcement learning, and quantum systems, largely driven by curiosity and an
-              intolerance for shallow explanations.
-            </p>
-            <p class="lead">
-              More broadly, I'm interested in deep mathematical structure and its ability to unify seemingly
-              unrelated problems. Whether that means analytic techniques, geometric formalisms, or carefully
-              engineered learning systems, the goal is the same: develop tools that scale understanding, not just
-              computation. This site is where I document that process, along with the projects, ideas, and
-              occasional hard-won lessons that come with it.
-            </p>
-            <div class="cta-row">
-              <a class="btn primary" href="projects.html">View Projects</a>
-              <a class="btn" href="contact.html">Contact</a>
-            </div>
-          </div>
+          </object>
         </div>
       </section>
     </main>

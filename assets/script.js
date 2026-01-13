@@ -1,52 +1,23 @@
-// Minimal client-side metrics for a static site.
-// Keeps directory refs the same. Paste your logging endpoint URL below.
-// If left empty, logging is disabled but the on-page IP display still works.
 document.addEventListener('DOMContentLoaded', () => {
-  const y = document.getElementById('year');
-  if (y) y.textContent = new Date().getFullYear();
+  const year = document.getElementById('year');
+  if (year) year.textContent = new Date().getFullYear();
 
-  const LOG_ENDPOINT = ""; // e.g. "https://your-serverless-function.example/collect"
+  const reveals = document.querySelectorAll('[data-reveal]');
+  if (!reveals.length) return;
 
-  const ipEl = document.getElementById('ip-address');
+  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (prefersReduced) {
+    reveals.forEach((el) => el.classList.add('is-visible'));
+    return;
+  }
 
-  (async () => {
-    let ip = "";
-    try {
-      const r = await fetch("https://api.ipify.org?format=json", { cache: "no-store" });
-      const d = await r.json();
-      ip = (d && d.ip) || "";
-      if (ipEl) ipEl.textContent = ip || "Unavailable";
-    } catch (_) {
-      if (ipEl) ipEl.textContent = "Unavailable";
-    }
+  const observer = new IntersectionObserver((entries, obs) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      entry.target.classList.add('is-visible');
+      obs.unobserve(entry.target);
+    });
+  }, { threshold: 0.15 });
 
-    // Build your analytics payload
-    const payload = {
-      ip,
-      path: location.pathname + location.search + location.hash,
-      referrer: document.referrer || "",
-      userAgent: navigator.userAgent || "",
-      tz: (Intl.DateTimeFormat().resolvedOptions().timeZone || ""),
-      t: new Date().toISOString()
-    };
-
-    // Send via sendBeacon when possible, else fall back to fetch no-cors
-    if (LOG_ENDPOINT) {
-      try {
-        const body = new Blob([JSON.stringify(payload)], { type: "application/json" });
-        if (navigator.sendBeacon) {
-          navigator.sendBeacon(LOG_ENDPOINT, body);
-        } else {
-          fetch(LOG_ENDPOINT, {
-            method: "POST",
-            mode: "no-cors",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-          });
-        }
-      } catch (_) {
-        // Non-fatal. We don't block page usage on analytics.
-      }
-    }
-  })();
+  reveals.forEach((el) => observer.observe(el));
 });

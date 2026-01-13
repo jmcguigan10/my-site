@@ -185,6 +185,23 @@ img{max-width:100%;display:block}
 .tag-row span{padding:2px 0}
 
 .project-feature{padding-top:110px}
+.project-header{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+.project-header h2{margin:0}
+.project-link{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 12px;
+  border-radius:999px;
+  border:1px solid rgba(100,242,210,0.35);
+  background:rgba(12,24,46,0.75);
+  color:var(--accent);
+  font-family:'JetBrains Mono',monospace;
+  font-size:0.78rem;
+  letter-spacing:0.06em;
+  text-transform:uppercase;
+}
+.project-link:hover{color:var(--accent-2);border-color:rgba(90,168,255,0.5)}
 .project-layout{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,0.85fr);gap:24px;align-items:start;margin-bottom:28px}
 .project-lead{margin:0 0 16px 0;color:var(--muted);font-size:1rem}
 .project-tags{margin-top:12px}

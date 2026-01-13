@@ -215,6 +215,7 @@ img{max-width:100%;display:block}
   gap:14px;
   z-index:10;
 }
+.social-rail .icon{width:22px;height:22px}
 .social-rail a{
   width:36px;
   height:36px;

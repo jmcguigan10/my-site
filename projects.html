@@ -173,6 +173,115 @@
         </div>
       </section>
 
+      <section id="qubit-rl" class="section project-feature">
+        <div class="section-head" data-reveal>
+          <p class="section-kicker"><span>03.</span> Projects</p>
+          <div class="project-header">
+            <h2>Qubit RL: Time-Optimal Control</h2>
+            <a class="project-link" href="https://github.com/jmcguigan10/qubit_rl_starter">
+              <svg class="icon" aria-hidden="true"><use href="#icon-github"></use></svg>
+              <span>GitHub repo</span>
+            </a>
+          </div>
+          <p class="section-sub">
+            A lightweight PPO pipeline that learns to steer a single qubit across the Bloch sphere with minimal
+            time and control energy. Built for interpretability and quick iteration without heavy frameworks.
+          </p>
+        </div>
+
+        <div class="project-layout" data-reveal style="--delay: 120ms">
+          <div class="project-copy">
+            <p class="project-lead">
+              The environment simulates pure-state qubit dynamics in Bloch form with a goal-conditioned observation
+              that includes the current and target states. Actions map to bounded control amplitudes, and an RK4
+              integrator evolves the Bloch vector while enforcing normalization.
+            </p>
+            <p class="project-lead">
+              PPO is implemented from scratch for transparency. The buffer computes generalized advantage estimates,
+              then the actor-critic updates with clipped policy loss, entropy regularization, and value loss.
+            </p>
+            <div class="tag-row project-tags">
+              <span>Reinforcement learning</span>
+              <span>Quantum control</span>
+              <span>PPO</span>
+              <span>Bloch dynamics</span>
+            </div>
+          </div>
+          <div class="panel project-callout">
+            <h3>Project Repo</h3>
+            <p>
+              The starter repo includes training scripts, evaluation rollouts, and plotting utilities for fidelity,
+              control pulses, and Bloch-sphere trajectories.
+            </p>
+            <a class="btn" href="https://github.com/jmcguigan10/qubit_rl_starter">View GitHub Repo</a>
+          </div>
+        </div>
+
+        <div class="project-grid">
+          <div class="panel" data-reveal style="--delay: 180ms">
+            <h3>Environment + Data</h3>
+            <p>
+              Each episode samples an initial and target Bloch vector separated by a minimum angle. Observations are
+              goal-conditioned (current + target state), and optional domain randomization perturbs drift and control
+              amplitude to improve robustness.
+            </p>
+            <ul class="detail-list">
+              <li>Dynamics: r_dot = Omega(u) x r with drift Delta.</li>
+              <li>Integration: fourth-order Runge-Kutta, renormalized to stay on S^2.</li>
+              <li>Actions: bounded controls mapped to u_x, u_y with amplitude limits.</li>
+              <li>Reward: time penalty + energy penalty + progress in fidelity.</li>
+            </ul>
+          </div>
+
+          <div class="panel" data-reveal style="--delay: 240ms">
+            <h3>Methodology</h3>
+            <p>
+              PPO collects rollouts across parallel environments, computes GAE returns, and updates a compact
+              actor-critic network with clipped policy ratios. Entropy regularization preserves exploration while
+              the value head stabilizes training.
+            </p>
+            <ul class="detail-list">
+              <li>Policy: Gaussian actions with tanh squashing.</li>
+              <li>Optimization: Adam with gradient clipping and KL monitoring.</li>
+              <li>Config-driven runs: smoke, fast, and default settings.</li>
+            </ul>
+          </div>
+
+          <div class="panel" data-reveal style="--delay: 300ms">
+            <h3>Results</h3>
+            <p>
+              Evaluation rollouts show the agent quickly increasing fidelity while keeping control pulses smooth.
+              The Bloch trajectory arcs toward the target, and the component plots confirm convergence of x, y, z
+              to the desired state.
+            </p>
+            <ul class="detail-list">
+              <li>Fidelity rises early and stabilizes near the target.</li>
+              <li>Control pulses peak early, then settle as the target is reached.</li>
+              <li>Trajectories remain on the Bloch sphere throughout.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="plot-grid" data-reveal style="--delay: 360ms">
+          <figure>
+            <img src="assets/projects/qubit_rl_starter/fidelity.png" alt="Fidelity over time">
+            <figcaption>Fidelity vs time for a representative rollout.</figcaption>
+          </figure>
+          <figure>
+            <img src="assets/projects/qubit_rl_starter/controls.png" alt="Control pulses for u_x and u_y">
+            <figcaption>Learned control pulses for the two drive axes.</figcaption>
+          </figure>
+          <figure>
+            <img src="assets/projects/qubit_rl_starter/bloch_3d.png" alt="Bloch sphere trajectory">
+            <figcaption>Bloch-sphere trajectory from start to target.</figcaption>
+          </figure>
+          <figure>
+            <img src="assets/projects/qubit_rl_starter/bloch_components.png" alt="Bloch vector components">
+            <figcaption>Component-wise convergence of the Bloch vector.</figcaption>
+          </figure>
+        </div>
+      </section>
+
       <section id="other-projects" class="section">
         <div class="section-head" data-reveal>
           <p class="section-kicker"><span>03.</span> Projects</p>

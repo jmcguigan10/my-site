@@ -59,11 +59,119 @@
     </aside>
 
     <main class="page">
-      <section id="projects" class="section">
+      <section id="projects" class="section project-feature">
+        <div class="section-head" data-reveal>
+          <p class="section-kicker"><span>03.</span> Projects</p>
+          <h2>FFI Stability Classifier</h2>
+          <p class="section-sub">
+            Scientific machine learning pipeline for fast flavor instability detection in neutrino astrophysics.
+            This is the same project presented in my DNP poster.
+          </p>
+        </div>
+
+        <div class="project-layout" data-reveal style="--delay: 120ms">
+          <div class="project-copy">
+            <p class="project-lead">
+              This classifier turns simulation-derived neutrino data into a stability signal: FFI present vs stable.
+              The model is intentionally compact and interpretable, and every training run writes out plots and
+              metrics so the physics story stays traceable from raw data to final decision thresholds.
+            </p>
+            <p class="project-lead">
+              The training pipeline is built around reproducible configs, deterministic splits, and threshold sweeps
+              that emphasize physics-meaningful tradeoffs (precision vs recall) rather than a single default cutoff.
+            </p>
+            <div class="tag-row project-tags">
+              <span>Neutrino astrophysics</span>
+              <span>Scientific ML</span>
+              <span>MLP classifier</span>
+              <span>HPC training</span>
+            </div>
+          </div>
+          <div class="panel project-callout">
+            <h3>Poster Presentation</h3>
+            <p>
+              The DNP poster covers the same data sources, model family, and evaluation logic. Use it as a compact
+              overview while the sections below go deeper into the pipeline and results.
+            </p>
+            <a class="btn" href="DNP_CEU_Symp_Poster.pdf">View DNP Poster PDF</a>
+          </div>
+        </div>
+
+        <div class="project-grid">
+          <div class="panel" data-reveal style="--delay: 180ms">
+            <h3>Data</h3>
+            <p>
+              Four simulation-derived NPZ datasets are pooled into a single training set. Each file provides
+              27-dimensional features alongside binary instability labels, so the model sees multiple regimes and
+              learns a shared decision boundary rather than a single-scenario heuristic.
+            </p>
+            <ul class="detail-list">
+              <li>Sources: zero-flux-factor, one-flavor, random, and NSM-stable runs.</li>
+              <li>Files: train_data_stable_zerofluxfac.npz, train_data_stable_oneflavor.npz, train_data_random.npz, train_data_NSM_stable.npz.</li>
+              <li>Features: X_* arrays with shape (N, 27).</li>
+              <li>Labels: unstable_* arrays (FFI present = 1, stable = 0).</li>
+              <li>Keys follow X_* / unstable_* pairs (e.g., X_zerofluxfac, unstable_zerofluxfac).</li>
+              <li>Random slice can be upweighted to counter class imbalance.</li>
+              <li>Train/validation split uses a fixed seed; scaling uses training stats only.</li>
+            </ul>
+          </div>
+
+          <div class="panel" data-reveal style="--delay: 240ms">
+            <h3>Methodology</h3>
+            <p>
+              A multi-layer perceptron ingests standardized features and is trained with BCEWithLogitsLoss plus
+              per-sample weights. The schedule includes warmup, reduce-on-plateau learning rate decay, and early
+              stopping. Metrics are logged per epoch at a 0.5 threshold, then swept from 0.01 to 0.99 to maximize F1.
+            </p>
+            <ul class="detail-list">
+              <li>Model: configurable MLP with dropout for regularization.</li>
+              <li>Optimizer: AdamW with weight decay.</li>
+              <li>Training: early stopping + LR warmup + ReduceLROnPlateau.</li>
+              <li>Outputs: model weights, loss/F1 plots, and aggregated results.</li>
+              <li>Inference timing is benchmarked on CPU (and GPU when available).</li>
+            </ul>
+          </div>
+
+          <div class="panel" data-reveal style="--delay: 300ms">
+            <h3>Results</h3>
+            <p>
+              Loss curves show steady convergence across seeds and a stable validation floor. The F1 threshold
+              sweeps reveal a broad optimum, indicating the classifier remains reliable across a range of decision
+              thresholds rather than a single fragile cutoff. These runs correspond to the plots below.
+            </p>
+            <ul class="detail-list">
+              <li>Training and validation loss tracked every epoch.</li>
+              <li>F1 vs threshold sweeps used to select the operating point.</li>
+              <li>Runs are tagged with seed and hyperparameters for traceability.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="plot-grid" data-reveal style="--delay: 360ms">
+          <figure>
+            <img src="assets/projects/ntrno_stblty_clssfr/S17_L5_HS384_DR0.01_WD0.0001_BS6144_RM3_loss.png" alt="Loss curves for seed 17">
+            <figcaption>Training vs validation loss for seed 17 (MLP, weighted data).</figcaption>
+          </figure>
+          <figure>
+            <img src="assets/projects/ntrno_stblty_clssfr/S43_L5_HS384_DR0.01_WD0.0001_BS6144_RM3_loss.png" alt="Loss curves for seed 43">
+            <figcaption>Training vs validation loss for seed 43.</figcaption>
+          </figure>
+          <figure>
+            <img src="assets/projects/ntrno_stblty_clssfr/S17_L6_HS256_DR0.01_WD0.0001_BS4192_RM3_f1_sweep.png" alt="F1 threshold sweep for seed 17">
+            <figcaption>F1 vs threshold sweep to locate the optimal decision boundary.</figcaption>
+          </figure>
+          <figure>
+            <img src="assets/projects/ntrno_stblty_clssfr/S43_L5_HS384_DR0.01_WD0.0001_BS6144_RM3_f1_sweep.png" alt="F1 threshold sweep for seed 43">
+            <figcaption>Second seed sweep highlighting the same plateau behavior.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section id="other-projects" class="section">
         <div class="section-head" data-reveal>
           <p class="section-kicker"><span>03.</span> Projects</p>
           <h2>Other Noteworthy Projects</h2>
-          <a class="section-link" href="projects.html#projects">View complete list of projects</a>
+          <a class="section-link" href="#other-projects">View complete list of projects</a>
         </div>
         <div class="cards">
           <article class="card" data-reveal style="--delay: 0ms">

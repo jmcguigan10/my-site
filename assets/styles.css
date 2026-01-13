@@ -184,6 +184,22 @@ img{max-width:100%;display:block}
 .tag-row{display:flex;flex-wrap:wrap;gap:10px;font-family:'JetBrains Mono',monospace;font-size:0.72rem;letter-spacing:0.04em;color:var(--accent)}
 .tag-row span{padding:2px 0}
 
+.project-feature{padding-top:110px}
+.project-layout{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,0.85fr);gap:24px;align-items:start;margin-bottom:28px}
+.project-lead{margin:0 0 16px 0;color:var(--muted);font-size:1rem}
+.project-tags{margin-top:12px}
+.project-callout{background:linear-gradient(150deg,rgba(18,32,58,0.95),rgba(11,20,36,0.95))}
+.project-callout h3{margin-top:0}
+.project-callout p{color:var(--muted)}
+.project-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px;margin-top:26px}
+.project-grid .panel h3{margin-top:0}
+.detail-list{margin:12px 0 0 0;padding-left:18px;color:var(--muted)}
+.detail-list li{margin-bottom:8px}
+.plot-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px;margin-top:22px}
+.plot-grid figure{margin:0}
+.plot-grid img{border-radius:14px;border:1px solid rgba(120,160,220,0.2);background:#0b1324;box-shadow:0 14px 30px rgba(4,10,22,0.35)}
+.plot-grid figcaption{margin-top:8px;color:var(--muted);font-size:0.85rem}
+
 .contact{padding-bottom:120px}
 .contact-card{
   max-width:640px;
@@ -258,6 +274,8 @@ img{max-width:100%;display:block}
   .resume-btn{margin-left:auto}
   .hero{padding-top:80px}
   .section{padding:70px 0}
+  .project-layout{grid-template-columns:1fr}
+  .project-feature{padding-top:90px}
   .social-rail,.email-rail{display:none}
 }
 

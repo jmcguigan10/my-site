@@ -1,0 +1,13 @@
+title: John McGuigan
+exclude:
+  - .git
+  - .github
+  - .gitmodules
+  - .DS_Store
+  - external
+  - ml
+  - tools
+  - original.png
+  - portrait.jpeg
+  - portrait-cut.png
+  - portrait-flood.png

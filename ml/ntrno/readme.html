@@ -1,114 +1,145 @@
-<pre>
-# FFI Stability Classifier — Training Pack
+<h1>FFI Stability Classifier</h1>
+<h2>Pipeline Summary</h2>
+<ul>
+<li>loads 4 NPZ datasets,</li>
+<li>concatenates them into one pool,</li>
+<li>optionally <strong>upweights the “random” slice</strong> via per-sample weights,</li>
+<li>trains a simple MLP with early stopping + LR warmup + plateau scheduler,</li>
+<li>logs <strong>loss + accuracy/precision/recall/F1</strong> each epoch (at threshold 0.5),</li>
+<li>sweeps thresholds 0.01..0.99 to find the <strong>best F1 threshold</strong>,</li>
+<li>saves a model <code>.pt</code>, plots, and a combined <code>results.npy</code>,</li>
+<li>benchmarks inference latency on CPU (and GPU if available).</li>
+</ul>
+<h2>Directory layout</h2>
+<pre><code class="language-text">.
+├─ assets/
+│  └─ plots/                   # Example plots committed to git
+├─ config/
+│  ├─ train_example.yaml        # Example training config (EDIT data_dir!)
+│  └─ slurm_example.yaml        # Example Slurm config template
+├─ hpc/
+│  └─ train.slurm               # Generic Slurm wrapper (expects env vars)
+├─ scripts/
+│  └─ submit_slurm.py           # Builds sbatch command from YAML
+├─ src/
+│  └─ ntrno/
+│     ├─ __init__.py            # PROJECT_ROOT resolution
+│     ├─ cli/train.py           # main entrypoint: python -m ntrno.cli.train
+│     ├─ config.py              # dataclasses + defaults
+│     ├─ data.py                # NPZ loading, weights, split, scaling, loaders
+│     ├─ inference.py           # inference latency benchmark helper
+│     ├─ metrics.py             # threshold sweep + PR/F1 utilities
+│     ├─ models.py              # MLP classifier
+│     ├─ plots.py               # plot writers (dark/cyber styling)
+│     └─ train.py               # training loop + saving artifacts
+├─ tests/
+│  └─ test_train_smoke.py       # tiny synthetic smoke test
+├─ Makefile
+├─ requirements.txt
+└─ README.md
+</code></pre>
+<h2>Data you must provide</h2>
+<p>By default, the trainer expects a data/ (found at https://zenodo.org/records) directory at the repo root containing exactly these four files:</p>
+<pre><code class="language-text">data/
+├─ train_data_stable_zerofluxfac.npz
+├─ train_data_stable_oneflavor.npz
+├─ train_data_random.npz
+└─ train_data_NSM_stable.npz
+</code></pre>
+<h3>Expected NPZ keys</h3>
+<p>Each NPZ must contain the following arrays:</p>
+<pre><code>| File                              | Features key    | Labels key             |
+| --------------------------------- | --------------- | ---------------------- |
+| train_data_stable_zerofluxfac.npz | `X_zerofluxfac` | `unstable_zerofluxfac` |
+| train_data_stable_oneflavor.npz   | `X_oneflavor`   | `unstable_oneflavor`   |
+| train_data_random.npz             | `X_random`      | `unstable_random`      |
+| train_data_NSM_stable.npz         | `X_NSM_stable`  | `unstable_NSM_stable`  |
+</code></pre>
+<h2>Makefile shortcuts</h2>
+<p>The Makefile wires everything up for you:</p>
+<pre><code class="language-bash">make venv
+make train
+make test
+make slurm
+</code></pre>
+<h2>Plots at a glance</h2>
+<p>Loss curves (kept just these two):</p>
+<div style="display:flex; gap:12px; justify-content:center; align-items:center; flex-wrap:wrap;">
+  <img src="assets/plots/loss/S17_L5_HS384_DR0.01_WD0.0001_BS6144_RM3_loss.png" alt="Seed 17 loss" style="max-width:48%; min-width:240px; width:48%;">
+  <img src="assets/plots/loss/S43_L5_HS384_DR0.01_WD0.0001_BS6144_RM3_loss.png" alt="Seed 43 loss" style="max-width:48%; min-width:240px; width:48%;">
+</div>
 
-This bundle gives you a single-command training pipeline that:
-- trains **two models** (seeds `17` and `43`) on your NPZ datasets,
-- logs accuracy/precision/recall/F1 each epoch,
-- prints the summary line exactly like you asked,
-- makes **loss** and **F1-vs-threshold** plots,
-- measures **inference timings** over lots of points and stores the per-sample timestamps to CSV,
-- exports **TorchScript** and **ONNX** for C++ consumption,
-- writes everything to neat folders so future-you doesn’t curse present-you.
+<p>F1 vs threshold sweeps:</p>
+<div style="display:flex; gap:12px; justify-content:center; align-items:center; flex-wrap:wrap;">
+  <img src="assets/plots/f1_t_sweep/S43_L5_HS384_DR0.01_WD0.0001_BS6144_RM3_f1_sweep.png" alt="Seed 43 sweep" style="max-width:48%; min-width:240px; width:48%;">
+  <img src="assets/plots/f1_t_sweep/S17_L6_HS256_DR0.01_WD0.0001_BS4192_RM3_f1_sweep.png" alt="Seed 17 sweep" style="max-width:48%; min-width:240px; width:48%;">
+</div>
 
-## Plots at a glance
-
-Loss curves (kept just these two):
-
-&lt;div style=&quot;display:flex; gap:12px; justify-content:center; align-items:center; flex-wrap:wrap;&quot;&gt;
-  &lt;img src=&quot;assets/plots/loss/S17_L5_HS384_DR0.01_WD0.0001_BS6144_RM3_loss.png&quot; alt=&quot;Seed 17 loss&quot; style=&quot;max-width:48%; min-width:240px; width:48%;&quot;&gt;
-  &lt;img src=&quot;assets/plots/loss/S43_L5_HS384_DR0.01_WD0.0001_BS6144_RM3_loss.png&quot; alt=&quot;Seed 43 loss&quot; style=&quot;max-width:48%; min-width:240px; width:48%;&quot;&gt;
-&lt;/div&gt;
-
-F1 vs threshold sweeps:
-
-&lt;div style=&quot;display:flex; gap:12px; justify-content:center; align-items:center; flex-wrap:wrap;&quot;&gt;
-  &lt;img src=&quot;assets/plots/f1_t_sweep/S43_L5_HS384_DR0.01_WD0.0001_BS6144_RM3_f1_sweep.png&quot; alt=&quot;Seed 43 sweep&quot; style=&quot;max-width:48%; min-width:240px; width:48%;&quot;&gt;
-  &lt;img src=&quot;assets/plots/f1_t_sweep/S17_L6_HS256_DR0.01_WD0.0001_BS4192_RM3_f1_sweep.png&quot; alt=&quot;Seed 17 sweep&quot; style=&quot;max-width:48%; min-width:240px; width:48%;&quot;&gt;
-&lt;/div&gt;
-
-## Directory layout
-
-```
-ffi_stability_project/
-├── data/                         # Put your NPZ training files here
-│   ├── train_data_NSM_stable.npz
-│   ├── train_data_random.npz
-│   ├── train_data_stable_oneflavor.npz
-│   └── train_data_stable_zerofluxfac.npz
-├── slurm/
-│   └── auto_model.slurm          # Run this on the cluster
-├── src/
-│   ├── full_nn.py                # Architecture + training + export + plotting
-│   └── train_two_models.py       # Small wrapper that launches seeds 17 &amp; 43
-├── models/
-│   ├── pytorch/                  # .pt state_dicts
-│   ├── torchscript/              # .ts files
-│   └── onnx/                     # .onnx files
-├── outputs/
-│   ├── logs/                     # per-run .txt logs
-│   ├── inference/                # inference_timestamps_*.csv
-│   └── plots/
-│       ├── loss_curves/          # loss_seed*.png
-│       └── f1_threshold/         # f1_vs_threshold_seed*.png
-└── README.md
-```
-
-## Quick start (local)
-
-```
-python -m venv .venv &amp;&amp; source .venv/bin/activate
+<h2>Directory layout</h2>
+<pre><code class="language-text">.
+├─ assets/
+│  └─ plots/                   # Example plots committed to git
+├─ config/
+│  ├─ train_example.yaml        # Example training config (EDIT data_dir!)
+│  └─ slurm_example.yaml        # Example Slurm config template
+├─ hpc/
+│  └─ train.slurm               # Generic Slurm wrapper (expects env vars)
+├─ scripts/
+│  └─ submit_slurm.py           # Builds sbatch command from YAML
+├─ src/
+│  └─ ntrno/
+│     ├─ __init__.py            # PROJECT_ROOT resolution
+│     ├─ cli/train.py           # main entrypoint: python -m ntrno.cli.train
+│     ├─ config.py              # dataclasses + defaults
+│     ├─ data.py                # NPZ loading, weights, split, scaling, loaders
+│     ├─ inference.py           # inference latency benchmark helper
+│     ├─ metrics.py             # threshold sweep + PR/F1 utilities
+│     ├─ models.py              # MLP classifier
+│     ├─ plots.py               # plot writers (dark/cyber styling)
+│     └─ train.py               # training loop + saving artifacts
+├─ tests/
+│  └─ test_train_smoke.py       # tiny synthetic smoke test
+├─ Makefile
+├─ requirements.txt
+└─ README.md
+</code></pre>
+<h2>Quick start (local)</h2>
+<pre><code>python -m venv .venv &amp;&amp; source .venv/bin/activate
 pip install -r requirements.txt
 PYTHONPATH=src python -m ntrno.cli.train --data-dir ./data --outputs-dir ./outputs2
-```
-
-Run a quick smoke test (tiny synthetic data):
-```
-PYTHONPATH=src python -m unittest tests.test_train_smoke
-```
-
-Makefile shortcuts:
-```
-make venv    # create virtualenv using PYTHON (default python3)
+</code></pre>
+<p>Run a quick smoke test (tiny synthetic data):</p>
+<pre><code>PYTHONPATH=src python -m unittest tests.test_train_smoke
+</code></pre>
+<p>Makefile shortcuts:</p>
+<pre><code>make venv    # create virtualenv using PYTHON (default python3)
 make train   # uses config/train_example.yaml and outputs2/
 make test    # smoke test
 make slurm   # submit via scripts/submit_slurm.py (see config/slurm_example.yaml -&gt; .env/slurm.yaml)
-```
-
-Configs:
-- `config/train_example.yaml`: grid/local defaults (copy/edit or pass your own with `--config`).
-- `config/slurm_example.yaml`: template; put real HPC values in `.env/slurm.yaml` (ignored) and use `make slurm`.
-
-## On the cluster
-
-Edit the `#SBATCH --chdir` in `slurm/auto_model.slurm` to this folder, then:
-```
-sbatch slurm/auto_model.slurm
-```
-
-### Print format (guaranteed)
-Each run ends with a **single-line** summary in the exact format you asked:
-```
-rm=20 layers=6 hs=384 dr=0.01 wd=0.0001 lr=0.005 bs=32768 | Loss 0.0830 Acc 0.9802 Prec0.5 0.9027 Rec0.5 0.9024 F1@0.5 0.9025 || BEST thr=0.68 Prec 0.9764 Rec 0.8562 F1 0.9124 | Epochs 418 Time 1481.4s
-```
-
-### What counts as “C++ compatible”
-We export **TorchScript** and **ONNX**. Alongside each model you also get a small JSON with the `mean` and `std` used for feature scaling so your C++ code can mirror preprocessing.
-
----
-
-## Data format expected
-Your NPZ files are autodetected with keys like:
-- `X_*` for features of shape `(N, 27)`
-- `unstable_*` for labels of shape `(N, 1)` or `(N,)`
-
-We concatenate all found pairs. Labels are treated as `FFI present = 1`.
-
-## Reproduce that exact setup
-We lock the architecture to **6 hidden layers**, **hidden size 384**, **dropout 0.01**, and train with:
-- `lr=0.005`, `weight_decay=1e-4`
-- `batch_size=32768`
+</code></pre>
+<p>Configs:
+- <code>config/train_example.yaml</code>: grid/local defaults (copy/edit or pass your own with <code>--config</code>).
+- <code>config/slurm_example.yaml</code>: template; put real HPC values in <code>.env/slurm.yaml</code> (ignored) and use <code>make slurm</code>.</p>
+<h2>On the cluster</h2>
+<p>Edit the <code>#SBATCH --chdir</code> in <code>slurm/auto_model.slurm</code> to this folder, then:</p>
+<pre><code>sbatch slurm/auto_model.slurm
+</code></pre>
+<h3>Print format (guaranteed)</h3>
+<p>Each run ends with a <strong>single-line</strong> summary in the exact format you asked:</p>
+<pre><code>rm=20 layers=6 hs=384 dr=0.01 wd=0.0001 lr=0.005 bs=32768 | Loss 0.0830 Acc 0.9802 Prec0.5 0.9027 Rec0.5 0.9024 F1@0.5 0.9025 || BEST thr=0.68 Prec 0.9764 Rec 0.8562 F1 0.9124 | Epochs 418 Time 1481.4s
+</code></pre>
+<h3>What counts as “C++ compatible”</h3>
+<p>We export <strong>TorchScript</strong> and <strong>ONNX</strong>. Alongside each model you also get a small JSON with the <code>mean</code> and <code>std</code> used for feature scaling so your C++ code can mirror preprocessing.</p>
+<hr>
+<h2>Data format expected</h2>
+<p>Your NPZ files are autodetected with keys like:
+- <code>X_*</code> for features of shape <code>(N, 27)</code>
+- <code>unstable_*</code> for labels of shape <code>(N, 1)</code> or <code>(N,)</code></p>
+<p>We concatenate all found pairs. Labels are treated as <code>FFI present = 1</code>.</p>
+<h2>Reproduce that exact setup</h2>
+<p>We lock the architecture to <strong>6 hidden layers</strong>, <strong>hidden size 384</strong>, <strong>dropout 0.01</strong>, and train with:
+- <code>lr=0.005</code>, <code>weight_decay=1e-4</code>
+- <code>batch_size=32768</code>
 - Early stopping patience 50, max epochs 10k
-- Class imbalance handled via `pos_weight = (neg/pos)` in BCEWithLogitsLoss
-
-Everything else is just creature comforts.
-</pre>
+- Class imbalance handled via <code>pos_weight = (neg/pos)</code> in BCEWithLogitsLoss</p>
+<p>Everything else is just creature comforts.</p>
